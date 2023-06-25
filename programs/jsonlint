@@ -1,0 +1,58 @@
+#!/bin/bash
+export AWKPATH="$(cd "$(dirname "$0")" && pwd)/../include"
+exec gawk "$(tail -n +4 "$0")" "$@"
+# Begin AWK
+
+@include "json.awk"
+
+function beginlevel(_p,l,m,key) {
+	if (length(key)) {
+		printf("%s" ORS "%s%s:%s",comma,level,json_quote(key),m)
+		comma=""
+	}
+	else {
+		printf((l>1?ORS:"") level m)
+	}
+	level=level "  "
+}
+function dataparsed(_p,l,m,key,data) {
+	if (typeof(data) == "unassigned")
+		data = "null"
+	else if (!(typeof(data) == "number") && (length(data) > 1000 || !(data ~ /^true$|^false$|^null$/)))
+		data = json_quote(data)
+	if (m == "{") {
+		printf("%s" ORS "%s%s:%s",comma,level,json_quote(key),data)
+	}
+	else if (m == "[") {
+		printf("%s" ORS "%s%s",comma,level,data)
+	}
+	else {
+		print data
+	}
+	comma=","
+}
+function endlevel(_p,l,m) {
+	level=substr(level,1,length(level)-2)
+	if (m == "{") printf(ORS level "}")
+	if (m == "[") printf(ORS level "]")
+	comma = (l>1 ? "," : "")
+	if (l == 1) print ""
+}
+
+BEGIN {
+	json_initparser(parser)
+	level=""
+	parser["func.beginlevel"] = "beginlevel"
+	parser["func.dataparsed"] = "dataparsed"
+	parser["func.endlevel"] = "endlevel"
+	parser["skipdata"] = 1
+	json_parsefrominput(parser)
+}
+
+{
+}
+
+END {
+	json_closeparser(parser)
+	# print json_serialize(parser["data"])
+}
