@@ -26,6 +26,7 @@ function xml_initparser(_p) {
 	if ("parents" in _p)    {delete _p["parents"]   }; _p["parents"][0];    delete _p["parents"][0]
 	if ("attributes" in _p) {delete _p["attributes"]}; _p["attributes"][0]; delete _p["attributes"][0]
 	_p["parentcount"]=0
+	_p["xmlissinglenode"]=0
 
 	_p["func.begindoc"] = "" # Set this to a function name of @begindoc(_p)
 	_p["func.enddoc"] = "" # Set this to a function name of @enddoc(_p)
@@ -57,12 +58,12 @@ function xml_parseinput(_p,data,  _func) {
 
 	# Is this an end node?
 	if (data ~ /^\//) {
-		if (XmlNodeEndFunc)
-		@XmlNodeEndFunc()
-		if (_p["parsevalue"])
-		{
-		_p["value"]=""
-		_p["parsevalue"]=0
+		if (_p["func.nodeend"]) {
+			_func=_p["func.nodeend"]; @_func(_p)
+		}
+		if (_p["parsevalue"]) {
+			_p["value"]=""
+			_p["parsevalue"]=0
 		}
 		_p["path"]=substr(_p["path"],1,length(_p["path"])-length(_p["parents"][_p["parentcount"]])-1)
 		delete _p["parents"][_p["parentcount"]]
@@ -74,7 +75,11 @@ function xml_parseinput(_p,data,  _func) {
 	}
 
 	# Is this a start node?
-	if (!(data ~ /^\/|\/$/)) {
+	if (!(data ~ /^\//)) {
+		if (data ~ /\/$/) {
+			_p["xmlissinglenode"]=1
+			sub(/[ \t]*\/$/,"",data)
+		}
 		_p["parsevalue"]=1
 		_p["path"]=_p["path"] "/" $1
 		_p["parentcount"]++
@@ -84,6 +89,23 @@ function xml_parseinput(_p,data,  _func) {
 		if (_p["func.nodestart"]) {
 			_func=_p["func.nodestart"]; @_func(_p)
 		}
+		if (_p["xmlissinglenode"]) {
+			if (_p["func.nodeend"]) {
+				_func=_p["func.nodeend"]; @_func(_p)
+			}
+			if (_p["parsevalue"]) {
+				_p["value"]=""
+				_p["parsevalue"]=0
+			}
+			_p["path"]=substr(_p["path"],1,length(_p["path"])-length(_p["parents"][_p["parentcount"]])-1)
+			delete _p["parents"][_p["parentcount"]]
+			delete _p["attributes"][_p["parentcount"]]
+			_p["parentcount"]--
+			if (_p["parentcount"] == 0 && _p["func.enddoc"]) {
+				_func=_p["func.enddoc"]; @_func(_p)
+			}
+		}
+		_p["xmlissinglenode"]=0
 	}
 }
 
