@@ -82,7 +82,7 @@ function json_parseinputinternal(_p,level,arr,parentMode,   data,key,mode,oldRs,
 		case "{":
 			RS="[ \t\r\n]*[\"}]"; break
 		case "[":
-			RS="[ \t\r\n]*[0-9tfn\"\\]]"; break
+			RS="[ \t\r\n]*[{0-9tfn\"\\]]"; break
 		default:
 			RS="[ \t\r\n]*[\"{\\[]"; break
 	}
