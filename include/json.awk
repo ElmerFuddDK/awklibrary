@@ -105,6 +105,9 @@ function json_parseinputinternal(_p,level,arr,parentMode,   data,key,mode,oldRs,
 						json_parseinputinternal(_p,level+1,arr,mode)
 					}
 					else {
+						if (parentMode == "[" && !length(key)) {
+							key = length(arr)+1
+						}
 						if (isarray(arr)) {
 							if (key in arr) { delete arr[key] }; arr[key][0]; delete arr[key][0]
 							json_parseinputinternal(_p,level+1,arr[key],mode)
