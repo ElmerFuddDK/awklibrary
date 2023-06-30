@@ -11,7 +11,8 @@ function beginlevel(_p,l,m,key) {
 		comma=""
 	}
 	else {
-		printf((l>1?ORS:"") level m)
+		printf((l>1?comma ORS:"") level m)
+		comma=""
 	}
 	level=level "  "
 }
