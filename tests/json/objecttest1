@@ -1,0 +1,51 @@
+#!/bin/bash
+
+# Set your test parameters here for awk
+AWKPARAMS=()
+# Use this variable to enforce a specific awk version
+AWKPROGRAM=/usr/bin/gawk
+
+# Find our script location, and set awkpath
+SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"
+export AWKPATH="$SCRIPTDIR/../../include"
+
+# Execute the test - will output data to an awk process from this file that is executed from this file ...
+# See below
+
+. "$SCRIPTDIR/../include/performtest.sh"
+
+---  data  ---
+{
+  "It works": [
+    "as an array", "with objects", "too!"
+  ],
+  "and":"more",
+  "false":false,
+  "true":true,
+  "null": {
+    "number": 0.223 ,
+    "text":"txt"
+  },
+  "number":0.1234
+}
+--- expect ---
+{
+"It works": ["as an array", "with objects", "too!"],
+"and": "more",
+"false": false,
+"null": {
+"number": 0.223,
+"text": "txt"
+},
+"number": 0.1234,
+"true": true
+}
+--- script ---
+
+@include "json.awk"
+
+BEGIN {
+	json_initparser(parser)
+	json_parsefrominput(parser)
+	print json_serialize(parser["data"])
+}

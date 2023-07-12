@@ -1,0 +1,50 @@
+#!/bin/bash
+
+# Set your test parameters here for awk
+AWKPARAMS=()
+# Use this variable to enforce a specific awk version
+AWKPROGRAM=/usr/bin/gawk
+
+# Find our script location, and set awkpath
+SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"
+export AWKPATH="$SCRIPTDIR/../../include"
+
+# Execute the test - will output data to an awk process from this file that is executed from this file ...
+# See below
+
+. "$SCRIPTDIR/../include/performtest.sh"
+
+---  data  ---
+<xml>
+  <node1 with="atrributes">
+    And data
+    <node2 and="more attributes"/>
+  </node1>
+</xml>
+--- expect ---
+with=atrributes
+and=more attributes
+And data
+--- script ---
+
+@include "util.awk"
+@include "xml.awk"
+
+BEGIN {
+	xml_initparser(parser)
+	parser["func.nodestart"]="node_start"
+	parser["func.nodeend"]="node_end"
+	xml_parsefrominput(parser)
+	
+}
+
+function node_start(_p) {
+	for (key in _p["attributes"][_p["parentcount"]]) {
+		print key "=" _p["attributes"][_p["parentcount"]][key]
+	}
+}
+
+function node_end(_p,  key) {
+	if (_p["value"])
+		print trim(_p["value"])
+}
