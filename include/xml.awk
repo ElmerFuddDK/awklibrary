@@ -7,7 +7,8 @@
 #
 #  xml_initparser(parser)
 #  xml_closeparser(parser)
-#  xml_parseinput(parser,data)
+#  xml_parsefrominput(parser)
+#  xml_parsedata(parser,data)
 #  xml_parseattributes(attributestr,arr)
 #
 # Value escaping:
@@ -38,7 +39,14 @@ function xml_closeparser(_p) {
 	RS=_p["OLDRS"]
 }
 
-function xml_parseinput(_p,data,  _func) {
+function xml_parsefrominput(_p,  data) {
+	RS="<"
+	while ((getline data)>0) {
+		xml_parsedata(_p,data)
+	}
+}
+
+function xml_parsedata(_p,data,  _func,nodename) {
 	if (_p["func.begindoc"]) {
 		_func=_p["func.begindoc"]; @_func(_p)
 		_p["func.begindoc"]=""
@@ -80,12 +88,13 @@ function xml_parseinput(_p,data,  _func) {
 			_p["xmlissinglenode"]=1
 			sub(/[ \t]*\/$/,"",data)
 		}
+		match(data,/^([\t\r\n ]*)([^\t\r\n ]+)/,nodename)
 		_p["parsevalue"]=1
-		_p["path"]=_p["path"] "/" $1
+		_p["path"]=_p["path"] "/" nodename[2]
 		_p["parentcount"]++
-		_p["parents"][_p["parentcount"]] = $1
+		_p["parents"][_p["parentcount"]] = nodename[2]
 		_p["attributes"][_p["parentcount"]][0]; delete _p["attributes"][_p["parentcount"]][0]
-		xml_parseattributes(substr(data,length($1)+2),_p["attributes"][_p["parentcount"]])
+		xml_parseattributes(substr(data,length(nodename[2])+2),_p["attributes"][_p["parentcount"]])
 		if (_p["func.nodestart"]) {
 			_func=_p["func.nodestart"]; @_func(_p)
 		}
