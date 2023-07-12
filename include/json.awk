@@ -20,11 +20,14 @@
 #   Modified by prefixing function names
 #   Modified by adding idxOrder to deserialize
 
+JSON_TRIMALL=0
+
 function json_initparser(_p) {
 	split("",_p,"")
 	_p["OLDRS"]=RS
 	_p["mode"]=""
 	_p["skipdata"]=0
+	_p["trimall"]=JSON_TRIMALL
 	
 	_p["func.beginlevel"] = "" # Set this to a function name of @beginlevel(_p,level,mode) - will be called when entering an object or array
 	_p["func.dataparsed"] = "" # Set this to a function name of dataparsed(_p,level,mode,key,data) - will be called when a data node is parsed
@@ -132,7 +135,7 @@ function json_parseinputinternal(_p,level,arr,parentMode,   data,key,mode,oldRs,
 		else
 		{
 			if (mode == "\"") {
-				s=json_unquote(mode data RT)
+				s=json_unquote(mode data RT, _p["trimall"])
 			}
 			else if (mode ~ /[0-9]/) {
 				s=(mode data) + 0
@@ -283,13 +286,14 @@ function json_serialize(arr, indent_with, depth, _p, i, idx, val) {
 
 function json_trim(str) { gsub(/^\s+|\s+$/, "", str); return str }
 
-function json_unquote(str,  arr,c,i) {
+function json_unquote(str,tr,  arr,c,i) {
 	if (typeof(str) == "number")
 		return str
 	if (str == "null")
 		return i
-	gsub(/^'|'$/, "", str)
-	gsub(/^"|"$/, "", str)
+	if (str ~ /^'|'$/) { gsub(/^'|'$/, "", str) }
+	else if (str ~ /^"|"$/) { gsub(/^"|"$/, "", str) }
+	else { tr=1 }
 	
 	c=split(str,arr,"\\\\\\\\")
 	for (i=1;i<=c;i++)
@@ -305,7 +309,7 @@ function json_unquote(str,  arr,c,i) {
 	  if (i>1) str = str "\\" arr[i]
 	  else str = arr[i]
 	}
-	return json_trim(str)
+	return (tr ? json_trim(str) : str)
 }
 
 function json_tokenize(str, arr, splitchar, _p, _testnum, _quot) {
