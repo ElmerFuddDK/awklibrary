@@ -309,7 +309,7 @@ function json_unquote(str,tr,  arr,c,i) {
 	  gsub(/\\"/, "\"", arr[i])
 	  while (match(arr[i],/\\u00[0-9a-fA-F]{2}/))
 	  {
-	    arr[i] = substr(arr[i],1,RSTART-1) sprintf("%c", strtonum("0x" substr(arr[i],RSTART+2,RLENGTH))) substr(arr[i],RSTART+RLENGTH)
+	    arr[i] = substr(arr[i],1,RSTART-1) sprintf("%c", strtonum("0x" substr(arr[i],RSTART+2,RLENGTH-2))) substr(arr[i],RSTART+RLENGTH)
 	  }
 	  if (i>1) str = str "\\" arr[i]
 	  else str = arr[i]
