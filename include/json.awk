@@ -39,11 +39,16 @@ function json_closeparser(_p) {
 		close(_p["command"])
 		_p["command"] = ""
 	}
+	if (_p["inputfile"]) {
+		close(_p["inputfile"])
+		_p["inputfile"] = ""
+	}
 	RS=_p["OLDRS"]
 }
 
 function json_parsefrominput(_p) {
 	_p["command"] = ""
+	_p["inputfile"] = ""
 	if ("data" in _p) { delete _p["data"] }
 	if (!_p["skipdata"]) { _p["data"][0]; delete _p["data"][0]; split("",_p["data"],"") }
 	json_parseinputinternal(_p,0,_p["data"])
@@ -59,9 +64,8 @@ function json_parsefromstring(_p, data) {
 }
 
 function json_parsefromfile(_p, file) {
-	gsub(/\\/,"\\\\",file)
-	gsub(/"/,"\\\"",file)
-	_p["command"] = sprintf("cat \"%s\"", file)
+	_p["command"] = ""
+	_p["inputfile"] = file
 	if ("data" in _p) { delete _p["data"] }
 	if (!_p["skipdata"]) { _p["data"][0]; delete _p["data"][0]; split("",_p["data"],"") }
 	json_parseinputinternal(_p,0,_p["data"])
@@ -89,7 +93,8 @@ function json_parseinputinternal(_p,level,arr,parentMode,   data,key,mode,oldRs,
 		default:
 			RS="[ \t\r\n]*[\"{\\[]"; break
 	}
-	while (length(_nextdata) ||(_p["command"] ? (_p["command"] | getline data) : ((getline data) > 0))) {
+	while (length(_nextdata) || (_p["command"] ? (_p["command"] | getline data) : 
+	  (_p["inputfile"] ? ((getline data <_p["inputfile"]) > 0) : ((getline data) > 0)) ) ) {
 		if (length(_nextdata)) { data = _nextdata; _nextdata="" }
 		if (!mode) { # Scanning for start of data
 			mode=substr(RT,length(RT),1)
