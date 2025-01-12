@@ -42,15 +42,17 @@ BEGIN {
 
 	sqlite3_exec("CREATE TABLE IF NOT EXISTS testData(name TEXT, description TEXT NULL); CREATE UNIQUE INDEX IF NOT EXISTS [testData_key] ON testData(name);")
 
+	sqlite3_begintran()
 	split("hello,world",params,",")
 	sqlite3_exec("INSERT INTO testData(name,description) VALUES(@1,@2)", none, params)
 	split("hello2,world2",params,",")
 	sqlite3_exec("INSERT INTO testData(name,description) VALUES(@1,@2)", none, params)
 	split("hellonull",params,",")
 	sqlite3_exec("INSERT INTO testData(name,description) VALUES(@1,@2)", none, params)
+	sqlite3_commit()
 
 	array_init(result)
-    sqlite3_exec("SELECT * FROM testData",result)
+    sqlite3_exec("SELECT * FROM testData", result)
 
     print json_serialize(result)
 

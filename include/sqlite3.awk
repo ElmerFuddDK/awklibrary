@@ -19,6 +19,12 @@
 #      If params is an array then it is expected to contain parameters for the SQL in the format @paramname:
 #        select * from tbl where col = @1 -- First value of a list in params: split("parmValue",params,",")
 #        select * from tbl where col = @colName -- First value of a key in params: params["colName"] = parmValue
+#
+#  Transactions:
+#    sqlite3_begintran()
+#    ...
+#    sqlite3_commit(<result>)
+#      Any execs between the 2 statements will be in a transaction, and only the commit will return results
 
 function sqlite3_init(dbfile) {
 	if (!sqlite3_nullvalue) {
@@ -28,6 +34,22 @@ function sqlite3_init(dbfile) {
 		sqlite3_path = "sqlite3"
 	}
 	sqlite3_cmd = escape_tosh(sqlite3_path) " -bail -batch -html -header -nullvalue " escape_tosh(nullvalue) " " escape_tosh(dbfile)
+	sqlite3_intran = 0
+}
+
+function sqlite3_begintran() {
+	if (!sqlite3_intran) {
+		print "begin transaction;" |& sqlite3_cmd
+		sqlite3_intran = 1
+	}
+}
+
+function sqlite3_commit(result) {
+	if (sqlite3_intran) {
+		sqlite3_intran = 0
+		print "commit;" |& sqlite3_cmd
+		sqlite3_parseresult(result)
+	}
 }
 
 function sqlite3_exec(sqlstring,result,params,   oldRs,oldFs,oldORs,row,var,i,sqlarr) {
@@ -62,12 +84,16 @@ function sqlite3_exec(sqlstring,result,params,   oldRs,oldFs,oldORs,row,var,i,sq
 		}
 		row++
 	}
-
-	sqlite3_parseresult(result)
+	print ";" |& sqlite3_cmd
 
 	RS=oldRs
 	FS=oldFs
 	ORS=oldORs
+
+	if (sqlite3_intran)
+		return
+
+	sqlite3_parseresult(result)
 
 	if (isarray(result))
 		return length(result)
@@ -108,12 +134,16 @@ function sqlite3_execfile(sqlfile,result,params,   oldRs,oldFs,oldORs,nextIsVar,
 		}
 	}
 	close(sqlfile)
-
-	sqlite3_parseresult(result)
+	print ";" |& sqlite3_cmd
 
 	RS=oldRs
 	FS=oldFs
 	ORS=oldORs
+
+	if (sqlite3_intran)
+		return
+
+	sqlite3_parseresult(result)
 
 	if (isarray(result))
 		return length(result)
@@ -130,7 +160,6 @@ function sqlite3_parseresult(result,   oldRs,oldFs,oldORs,header,len,level,hasDa
 		return
 
 	# Close the statement
-	print ";" |& sqlite3_cmd
 	close(sqlite3_cmd, "to")
 
 	#while ((sqlite3_cmd |& getline) > 0) { print }; close(sqlite3_cmd); return
