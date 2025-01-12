@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# Set your test parameters here for awk
+AWKPARAMS=()
+# Use this variable to enforce a specific awk version
+AWKPROGRAM=/usr/bin/gawk
+
+# Find our script location, and set awkpath
+SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"
+export AWKPATH="$SCRIPTDIR/../../include"
+
+# Execute the test - will output data to an awk process from this file that is executed from this file ...
+# See below
+
+. "$SCRIPTDIR/../include/performtest.sh"
+
+---  data  ---
+"Name";"Number";"Gender";"Age"
+"Harry";1234;"Male";34
+"Larry ""the Monster""";5678;"White mouse";78
+--- expect ---
+Cell: Value:
+A1    Name
+B1    Number
+C1    Gender
+D1    Age
+A2    Harry
+B2    1234
+C2    Male
+D2    34
+A3    Larry "the Monster"
+B3    5678
+C3    White mouse
+D3    78
+--- script ---
+
+@include "csv.awk"
+
+BEGIN { printf("%-5s %s" ORS, "Cell:", "Value:") }
+
+{
+  csv_parse($0,fields,";","\"","\"",0,0)
+  rowIdx++
+  for (i=1;i<=length(fields);i++) {
+    printf("%-5s %s" ORS, csv_colindextocellid(i) rowIdx, fields[i])
+  }
+}

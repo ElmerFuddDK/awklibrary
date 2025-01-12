@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# Set your test parameters here for awk
+AWKPARAMS=()
+# Use this variable to enforce a specific awk version
+AWKPROGRAM=/usr/bin/gawk
+
+# Find our script location, and set awkpath
+SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"
+export AWKPATH="$SCRIPTDIR/../../include"
+
+# Execute the test - will output data to an awk process from this file that is executed from this file ...
+# See below
+
+. "$SCRIPTDIR/../include/performtest.sh"
+
+---  data  ---
+Data 1
+Data 2
+Data 3
+
+Data 1 with "'s
+Data 2 also with a "
+Data 3
+--- expect ---
+"Data 1";"Data 2";"Data 3"
+"Data 1 with ""'s";"Data 2 also with a """;"Data 3"
+--- script ---
+
+@include "csv.awk"
+@include "util.awk"
+
+BEGIN { array_init(data); array_subinit(data,length(data)+1) }
+
+# Empty means new row
+$0 == "" { array_subinit(data,length(data)+1); next }
+# Otherwise add the data as a column to the current row
+{ data[length(data)][length(data[length(data)])+1] = $0 }
+
+END {
+  for (row=1;row<=length(data);row++) {
+    for (col=1;col<=length(data[row]);col++) {
+      printf("%s%s", (col > 1 ? ";" : ""), escape_tocsv(data[row][col]))
+    }
+    print ""
+  }
+}
