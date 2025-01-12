@@ -1,0 +1,60 @@
+#!/bin/bash
+
+# Set your test parameters here for awk
+AWKPARAMS=("-v" "var=test")
+# Use this variable to enforce a specific awk version
+AWKPROGRAM=/usr/bin/gawk
+
+# Find our script location, and set awkpath
+export SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"
+export AWKPATH="$SCRIPTDIR/../../include"
+
+# Execute the test - will output data to an awk process from this file that is executed from this file ...
+# See below
+
+. "$SCRIPTDIR/../include/performtest.sh"
+
+---  data  ---
+--- expect ---
+[{
+"description": "world",
+"name": "hello"
+}, {
+"description": "world2",
+"name": "hello2"
+}, {
+"description": null,
+"name": "hellonull"
+}]
+--- script ---
+
+@include "util.awk"
+@include "sql.awk"
+@include "xml.awk"
+@include "json.awk"
+@include "sqlite3.awk"
+
+BEGIN {
+	dbfile=ENVIRON["SCRIPTDIR"] "/test.sqlite3"
+	system("rm -f " escape_tosh(dbfile))
+
+	sqlite3_init(dbfile)
+
+	sqlite3_exec("CREATE TABLE IF NOT EXISTS testData(name TEXT, description TEXT NULL); CREATE UNIQUE INDEX IF NOT EXISTS [testData_key] ON testData(name);")
+
+	split("hello,world",params,",")
+	sqlite3_exec("INSERT INTO testData(name,description) VALUES(@1,@2)", none, params)
+	split("hello2,world2",params,",")
+	sqlite3_exec("INSERT INTO testData(name,description) VALUES(@1,@2)", none, params)
+	split("hellonull",params,",")
+	sqlite3_exec("INSERT INTO testData(name,description) VALUES(@1,@2)", none, params)
+
+	array_init(result)
+    sqlite3_exec("SELECT * FROM testData",result)
+
+    print json_serialize(result)
+
+	exit
+}
+
+{print "got",$0}
